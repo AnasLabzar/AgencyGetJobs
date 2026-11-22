@@ -1,0 +1,55 @@
+{
+  "name": "agency-get-jobs",
+  "version": "1.0.0",
+  "description": "Multi-Agent Autonomous Recruitment Engine",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "dev:web": "next dev",
+    "build": "tsc",
+    "build:web": "next build",
+    "start": "node build/index.js",
+    "start:web": "next start"
+  },
+  "keywords": [
+    "recruitment",
+    "multi-agent",
+    "automation",
+    "ai",
+    "scraping"
+  ],
+  "author": "AgencyGetJobs",
+  "license": "MIT",
+  "dependencies": {
+    "@types/imap-simple": "^4.2.10",
+    "@types/node": "^26.6.6",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "dotenv": "^18.0.10",
+    "imap-simple": "^5.1.0",
+    "imapflow": "^2.12.1",
+    "mailparser": "^3.14.5",
+    "next": "^16.4.6",
+    "nodemailer": "^10.5.0",
+    "openai": "^4.0.0",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.23.1",
+    "puppeteer": "^25.16.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tesseract.js": "^2.1.2"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.9.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.1",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  }
+}

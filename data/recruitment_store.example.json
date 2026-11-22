@@ -1,0 +1,20 @@
+{
+  "user_profiles": [],
+  "job_offers": [],
+  "applications": [],
+  "email_logs": [],
+  "performance_metrics": [],
+  "agent_config": {
+    "autonomous_mode": "false",
+    "match_score_threshold": "75",
+    "max_applications_per_day": "20",
+    "scraping_interval_minutes": "60",
+    "warmup_enabled": "true",
+    "ab_testing_enabled": "true",
+    "preferred_cv_language": "AUTO",
+    "hitl_approval_mode": "true"
+  },
+  "interview_preps": [],
+  "linkedin_outreach": [],
+  "inbox_messages": []
+}
