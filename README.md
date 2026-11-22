@@ -31,30 +31,30 @@ Le moteur fonctionne grâce à 4 agents spécialisés et coordonnés en temps r�
 
 ```mermaid
 flowchart TD
-    CV["📄 Profil Utilisateur & CV Master (FR / EN)"] --> A1["🧠 Agent 1: Orchestrateur & Profile Master"]
+    CV["📄 Profil Utilisateur & CV Master"] --> A1["🧠 Agent 1: Orchestrateur & Profile Master"]
     
-    subgraph S1["Cycle Autonome 30s & Lead Intelligence"]
-        A1 -->|Brief de Recherche Dynamique| A2["🔍 Agent 2: Lead Scraping & Intelligence"]
-        A2 -->|LinkedIn Live (sortBy=DD) + RemoteOK| RAW["📦 Offres d'emploi temps réel"]
-        RAW -->|Filtres Villes & Déduplication| A1
+    subgraph S1["Cycle Autonome & Lead Intelligence"]
+        A1 -->|"Brief de Recherche Dynamique"| A2["🔍 Agent 2: Lead Scraping & Intelligence"]
+        A2 -->|"LinkedIn Live & RemoteOK"| RAW["📦 Offres d'emploi temps réel"]
+        RAW -->|"Filtres Villes & Déduplication"| A1
     end
 
     subgraph S2["Évaluation & Decision Gate"]
-        A1 -->|Algorithme de Scoring Hybride| SCORE["🎯 Match Score (0 - 100%)"]
-        SCORE -->|Marrakech (+25 pts) / Casablanca (+22 pts)| GATE{"Decision Gate >= 75%"}
+        A1 -->|"Algorithme de Scoring Hybride"| SCORE["🎯 Match Score: 0 à 100%"]
+        SCORE -->|"Priorisation Villes Cibles"| GATE{"Score supérieur ou égal à 75%"}
     end
 
     subgraph S3["Génération Adaptative & Outreach"]
-        GATE -->|Validé| A3["✍️ Agent 3: Adaptive Human-Writer"]
-        A3 -->|Protocole Anti-Détection IA| DOCS["📄 CV PDF sur-mesure + Email percutant"]
-        DOCS --> SHIELD["🛡️ Deliverability Shield (Warm-up & Jitter)"]
+        GATE -->|"Offre Validée"| A3["✍️ Agent 3: Adaptive Human-Writer"]
+        A3 -->|"Protocole Anti-Détection IA"| DOCS["📄 CV sur-mesure & Email percutant"]
+        DOCS --> SHIELD["🛡️ Deliverability Shield & Warm-up"]
         SHIELD --> SMTP["📤 Dispatch Gmail SMTP"]
     end
 
     subgraph S4["Surveillance Boîte RH & Détection d'Entretiens"]
-        GMAIL["📬 Gmail Boîte de Réception"] -->|Sync IMAP Sécurisée| A4["📬 Agent 4: Recruiter Inbox & Sentiment"]
-        A4 -->|Filtrage Spam & Scoring| INBOX["🎯 Détection d'Entretiens & Tests Techniques"]
-        INBOX --> DRAFT["💬 Génération automatique de réponses IA"]
+        GMAIL["📬 Gmail Boîte de Réception"] -->|"Sync IMAP Sécurisée"| A4["📬 Agent 4: Recruiter Inbox & Sentiment"]
+        A4 -->|"Filtrage Intelligent & Scoring"| INBOX["🎯 Détection d'Entretiens & Tests Techniques"]
+        INBOX --> DRAFT["💬 Génération de réponses adaptées"]
     end
 ```
 
