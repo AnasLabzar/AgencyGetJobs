@@ -126,6 +126,52 @@ export async function getProfile(): Promise<DBRow | null> {
   return profile || null;
 }
 
+export async function updateUserProfile(profileData: Record<string, any>): Promise<Record<string, any>> {
+  const store = loadStore();
+  const currentProfile = store.user_profiles[0] || {
+    id: 1,
+    profile_id: "user_master",
+    full_name: "Utilisateur",
+    languages: ["FR", "EN"],
+    core_competencies: ["Full-Stack", "JavaScript", "React"],
+    experience_years: 3
+  };
+
+  const updatedProfile = {
+    ...currentProfile,
+    ...profileData,
+    profile_id: currentProfile.profile_id || "user_master",
+    updated_at: new Date().toISOString()
+  };
+
+  store.user_profiles[0] = updatedProfile;
+  saveStore(store);
+
+  try {
+    await query(
+      `INSERT INTO user_profiles (profile_id, full_name, languages, core_competencies, experience_years, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (profile_id) DO UPDATE SET
+         full_name = EXCLUDED.full_name,
+         languages = EXCLUDED.languages,
+         core_competencies = EXCLUDED.core_competencies,
+         experience_years = EXCLUDED.experience_years,
+         updated_at = NOW()`,
+      [
+        updatedProfile.profile_id,
+        updatedProfile.full_name,
+        JSON.stringify(updatedProfile.languages || ["FR", "EN"]),
+        JSON.stringify(updatedProfile.core_competencies || []),
+        updatedProfile.experience_years || 3
+      ]
+    );
+  } catch {
+    // Local store is primary
+  }
+
+  return updatedProfile;
+}
+
 export async function getDashboardStats(): Promise<{
   totalJobs: number;
   totalApplications: number;

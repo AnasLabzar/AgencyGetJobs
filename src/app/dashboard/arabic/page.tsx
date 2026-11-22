@@ -160,7 +160,7 @@ export default function ArabicJobsDashboard() {
             <div className="ml-3">
               <p className="text-sm text-gray-600 dark:text-gray-400">30% Off</p>
               <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                {loading ? "..." : jobs.filter(hasDiscount30Off).length}
+                {loading ? "..." : jobs.filter(j => hasDiscount30Off(j.job_title + " " + j.company_name)).length}
               </p>
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function ArabicJobsDashboard() {
       {stats && (
         <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-500">
           <p>
-            📊 {jobs.length} offres • 💰 {jobs.filter(hasDiscount30Off).length} avec 30% off •
+            📊 {jobs.length} offres • 💰 {jobs.filter(j => hasDiscount30Off(j.job_title + " " + j.company_name)).length} avec 30% off •
             ⭐ {jobs.filter(j => j.match_score >= 75).length} opportunités qualifiées
           </p>
         </div>

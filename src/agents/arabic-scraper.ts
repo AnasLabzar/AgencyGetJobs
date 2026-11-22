@@ -240,7 +240,7 @@ export async function scrapeDiscountedOffers(
 
       // Pour cette implémentation, on génère des offres de démonstration
       // car les vraies sources nécessitent un scraping avec authentification
-      const job = {
+      const job: JobOfferIntel = {
         offer_id: `job_discount_${hashDescription(source.name).slice(0, 10)}`,
         source_url: source.url,
         company_name: `Tech Solutions Maroc`,
@@ -250,11 +250,11 @@ export async function scrapeDiscountedOffers(
           name: `Équipe Recrutement Tech Solutions`,
           email: `recrutement@tech-solutions.ma`,
           is_verified: true,
-          channel_recommended: "EMAIL"
+          channel_recommended: "EMAIL" as const
         },
         tech_stack_required: ["Next.js", "React", "Node.js", "TypeScript", "PostgreSQL"],
         match_score: 90,
-        status: "APPROVED",
+        status: "APPROVED" as const,
         created_at: new Date().toISOString()
       };
 

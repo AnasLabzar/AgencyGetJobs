@@ -21,6 +21,9 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userLocations, setUserLocations] = useState<string[]>([]);
 
   // HITL Review & Apply Modal State
   const [activeJob, setActiveJob] = useState<Job | null>(null);
@@ -48,6 +51,18 @@ export default function JobsPage() {
 
   useEffect(() => {
     fetchJobs();
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.configMap?.target_locations) {
+          const locs = data.configMap.target_locations
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+          setUserLocations(locs);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const fetchJobs = () => {
@@ -193,7 +208,21 @@ export default function JobsPage() {
     }
   };
 
-  const filteredJobs = filter === "all" ? jobs : jobs.filter((j) => j.status === filter);
+  const filteredJobs = jobs.filter((j) => {
+    if (filter !== "all" && j.status !== filter) return false;
+    if (locationFilter !== "all") {
+      const loc = (j.location || "").toLowerCase();
+      if (!loc.includes(locationFilter.toLowerCase())) return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchCompany = (j.company_name || "").toLowerCase().includes(q);
+      const matchTitle = (j.job_title || "").toLowerCase().includes(q);
+      const matchStack = (j.tech_stack || []).some((s) => s.toLowerCase().includes(q));
+      if (!matchCompany && !matchTitle && !matchStack) return false;
+    }
+    return true;
+  });
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -219,25 +248,83 @@ export default function JobsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Pipeline des Opportunités</h1>
-          <p className="text-slate-400 mt-1">
-            {jobs.length} offres qualifiées & prêtes pour validation ou envoi
+          <h1 className="text-2xl font-black text-white">Pipeline des Opportunités Qualifiées</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {jobs.length} offres extraites • {filteredJobs.length} affichées selon vos filtres personnalisés
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {["all", "APPROVED", "REVIEW", "REJECTED"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 filter === f
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
-                  : "bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                  : "bg-slate-800/80 border border-slate-700/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
               }`}
             >
-              {f === "all" ? "Toutes" : f}
+              {f === "all" ? "Toutes" : f === "APPROVED" ? "Approuvées (≥ Seuil)" : f === "REVIEW" ? "À Revoir" : "Rejetées"}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Dynamic Search & Location Pills Bar */}
+      <div className="p-4 rounded-2xl bg-[#0D1322]/90 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 Filtrer par entreprise, techno (Next.js, React...), poste..."
+            className="w-full px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-2 text-slate-400 hover:text-white text-xs"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">Villes :</span>
+          <button
+            onClick={() => setLocationFilter("all")}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              locationFilter === "all"
+                ? "bg-indigo-600 text-white"
+                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+            }`}
+          >
+            Toutes
+          </button>
+          {userLocations.map((loc) => (
+            <button
+              key={loc}
+              onClick={() => setLocationFilter(loc.toLowerCase())}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                locationFilter === loc.toLowerCase()
+                  ? "bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700/60"
+              }`}
+            >
+              📍 {loc}
+            </button>
+          ))}
+          <button
+            onClick={() => setLocationFilter("remote")}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              locationFilter === "remote"
+                ? "bg-emerald-600 text-white font-bold"
+                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+            }`}
+          >
+            🌐 Remote
+          </button>
         </div>
       </div>
 

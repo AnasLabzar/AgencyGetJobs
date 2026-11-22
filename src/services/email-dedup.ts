@@ -74,7 +74,9 @@ export async function canSendEmail(
 function extractDomain(input: string): string | null {
   try {
     const urlPart = input.replace(/^(https?:\/\/)?/, "").split("/")[0];
-    return urlPart.replace(/^www\./, "").split(":")[0];
+    if (!urlPart) return null;
+    const cleanDomain = urlPart.replace(/^www\./, "").split(":")[0];
+    return cleanDomain || null;
   } catch {
     return null;
   }

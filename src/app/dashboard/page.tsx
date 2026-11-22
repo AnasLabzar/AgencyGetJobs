@@ -10,6 +10,9 @@ export default function DashboardPage() {
   const [topInterview, setTopInterview] = useState<any>(null);
   const [llmProviders, setLlmProviders] = useState<any[]>([]);
   const [dedupStats, setDedupStats] = useState<any>(null);
+  const [userConfig, setUserConfig] = useState<any>({
+    target_locations: "Marrakech, Casablanca, Maroc, Remote"
+  });
   const [loading, setLoading] = useState(true);
 
   // 30s Loop state
@@ -18,7 +21,7 @@ export default function DashboardPage() {
     intervalSeconds: 30,
     currentCycle: 0,
     status: "IDLE",
-    message: "Boucle 30s prête (Focus Marrakech & Casablanca)",
+    message: "Boucle de scraping prête",
     focusLocations: ["Marrakech", "Casablanca", "Maroc"]
   });
   const [loopActionLoading, setLoopActionLoading] = useState(false);
@@ -31,8 +34,9 @@ export default function DashboardPage() {
       fetch("/api/scraper/loop").then((r) => r.json()),
       fetch("/api/llm").then((r) => r.json()),
       fetch("/api/dedup").then((r) => r.json()),
+      fetch("/api/config").then((r) => r.json()),
     ])
-      .then(([jobsData, appsData, inboxData, loopData, llmData, dedupData]) => {
+      .then(([jobsData, appsData, inboxData, loopData, llmData, dedupData, configData]) => {
         setRecentJobs(jobsData.jobs || []);
         setRecentApps(appsData.applications || []);
         if (inboxData.success) {
@@ -50,6 +54,9 @@ export default function DashboardPage() {
         }
         if (dedupData.success) {
           setDedupStats(dedupData);
+        }
+        if (configData.success && configData.configMap) {
+          setUserConfig(configData.configMap);
         }
         setLoading(false);
       })
@@ -105,6 +112,58 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* 0. KPI STATS CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <div className="p-5 rounded-2xl bg-[#0D1322]/90 border border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden group hover:border-indigo-500/50 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Opportunités Détectées</span>
+            <span className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm font-bold">💼</span>
+          </div>
+          <p className="text-3xl font-black text-white mt-2">{recentJobs.length}</p>
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-emerald-400 font-semibold">
+            <span>↑ Live Scraping</span>
+            <span className="text-slate-500">• LinkedIn & RemoteOK</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#0D1322]/90 border border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Entretiens Détectés</span>
+            <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-bold">🎯</span>
+          </div>
+          <p className="text-3xl font-black text-emerald-400 mt-2">{inboxStats?.interviewsCount || (topInterview ? 1 : 0)}</p>
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-emerald-400 font-semibold">
+            <span>✓ IMAP Vérifié</span>
+            <span className="text-slate-500">• Boîte Gmail</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#0D1322]/90 border border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden group hover:border-purple-500/50 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Candidatures Générées</span>
+            <span className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm font-bold">📄</span>
+          </div>
+          <p className="text-3xl font-black text-white mt-2">{recentApps.length}</p>
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-indigo-400 font-semibold">
+            <span>🛡️ Deliverability Shield</span>
+            <span className="text-slate-500">• Anti-AI</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#0D1322]/90 border border-slate-800 shadow-xl backdrop-blur-sm relative overflow-hidden group hover:border-amber-500/50 transition-all">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Villes Ciblées</span>
+            <span className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm font-bold">📍</span>
+          </div>
+          <p className="text-sm font-extrabold text-white mt-2 truncate">
+            {userConfig.target_locations ? userConfig.target_locations.split(",").slice(0, 2).join(", ") : "Marrakech, Casa"}
+          </p>
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-amber-400 font-semibold">
+            <span>Priorité Scoring Dynamique</span>
+          </div>
+        </div>
+      </div>
+
       {/* 1. HERO SPOTLIGHT : Focus sur le plus proche entretien (100% réel) */}
       {topInterview && (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/50 p-6 md:p-8 shadow-2xl">
@@ -182,7 +241,7 @@ export default function DashboardPage() {
               </h3>
             </div>
             <p className="text-xs text-slate-300">
-              <span className="text-amber-400 font-semibold">📍 Focus Villes :</span> Marrakech & Casablanca (Dernières annonces triées par date)
+              <span className="text-amber-400 font-semibold">📍 Focus Villes :</span> {userConfig.target_locations || "Marrakech & Casablanca"} (Dernières annonces triées par date)
             </p>
             <p className="text-[11px] text-slate-400 font-mono">
               {loopState.message} • Cycles achevés : <span className="text-white font-bold">{loopState.currentCycle || 0}</span>
@@ -204,7 +263,7 @@ export default function DashboardPage() {
                 disabled={loopActionLoading}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2"
               >
-                <span>▶️ Lancer la boucle (30s off)</span>
+                <span>▶️ Lancer la boucle ({loopState.intervalSeconds || 30}s off)</span>
               </button>
             )}
 
@@ -224,7 +283,7 @@ export default function DashboardPage() {
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span>💼</span> Dernières opportunités (Marrakech & Casablanca)
+              <span>💼</span> Dernières opportunités ({userConfig.target_locations ? userConfig.target_locations.split(",").slice(0, 2).join(" & ") : "Cibles"})
             </h3>
             <Link
               href="/dashboard/jobs"
@@ -242,8 +301,12 @@ export default function DashboardPage() {
           ) : (
             <ul className="space-y-3">
               {recentJobs.slice(0, 6).map((job: any) => {
-                const isMarrakech = (job.location || "").toLowerCase().includes("marrakech");
-                const isCasablanca = (job.location || "").toLowerCase().includes("casablanca");
+                const targetCities = (userConfig.target_locations || "Marrakech, Casablanca")
+                  .split(",")
+                  .map((s: string) => s.trim().toLowerCase());
+                const jobLoc = (job.location || "").toLowerCase();
+                const isCity1 = targetCities[0] && jobLoc.includes(targetCities[0]);
+                const isCity2 = targetCities[1] && jobLoc.includes(targetCities[1]);
 
                 return (
                   <li key={job.offer_id} className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/30 transition-all group">
@@ -251,14 +314,14 @@ export default function DashboardPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-white">{job.job_title}</p>
-                          {isMarrakech && (
+                          {isCity1 && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              ⭐ Marrakech
+                              ⭐ {targetCities[0].toUpperCase()}
                             </span>
                           )}
-                          {isCasablanca && !isMarrakech && (
+                          {isCity2 && !isCity1 && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                              Casablanca
+                              {targetCities[1].toUpperCase()}
                             </span>
                           )}
                         </div>

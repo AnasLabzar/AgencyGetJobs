@@ -388,13 +388,17 @@ export async function loadUserProfileFromCVs(
 }
 
 /**
- * Génère le Brief de Recherche Target à partir du profil utilisateur
+ * Génère le Brief de Recherche Target à partir du profil utilisateur et des paramètres dynamiques
  */
 export function generateTargetBrief(profile: UserMasterProfile): SearchBrief {
+  const store = loadStore();
+  const config = store.agent_config || {};
+
   const keywords: string[] = [];
 
   profile.core_competencies.forEach(comp => {
     const lowerComp = comp.toLowerCase();
+    keywords.push(comp.toLowerCase());
     if (lowerComp.includes("next.js") || lowerComp.includes("react") || lowerComp.includes("node.js") || lowerComp.includes("full-stack") || lowerComp.includes("développeur web") || lowerComp.includes("ingénieur logiciel")) {
       keywords.push(...KEYWORD_DATABASE["full-stack"]);
     }
@@ -414,9 +418,17 @@ export function generateTargetBrief(profile: UserMasterProfile): SearchBrief {
 
   const uniqueKeywords = [...new Set(keywords)];
 
-  // Priorité absolue : Marrakech et Casablanca d'abord
-  const locations: string[] = ["Marrakech", "Casablanca", "Maroc", "Remote"];
-  const remoteOk = true;
+  // Localisations dynamiques configurées par l'utilisateur
+  const locations: string[] = (config.target_locations || "Marrakech, Casablanca, Maroc, Remote")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // Rôles cibles dynamiques
+  const roles: string[] = (config.target_roles || "Full-Stack Engineer, Web Developer, AI Automation Engineer, Project Manager")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
 
   const minYears = Math.max(1, profile.experience_years - 2);
   const maxYears = profile.experience_years + 6;
@@ -428,24 +440,44 @@ export function generateTargetBrief(profile: UserMasterProfile): SearchBrief {
     experience_filters: {
       min_years: minYears,
       max_years: maxYears,
-      required_roles: ["Full-Stack Engineer", "Developer", "Project Manager", "AI Automation Engineer", "Technical Manager"]
+      required_roles: roles.length > 0 ? roles : ["Full-Stack Engineer", "Developer", "Project Manager", "Technical Manager"]
     },
     geographic_preferences: {
-      locations,
-      remote_ok: remoteOk,
+      locations: locations.length > 0 ? locations : ["Marrakech", "Casablanca", "Maroc", "Remote"],
+      remote_ok: true,
       mobility: "Mobilité nationale ou internationale"
     }
   };
 }
 
 /**
- * Génère le Brief de Recherche Target de manière dynamique depuis les CVs FR et EN
+ * Génère le Brief de Recherche Target de manière dynamique depuis le profil utilisateur ou les CVs
  */
 export async function generateTargetBriefFromCVs(
   cvFrPath: string = CV_PDF_FR_PATH,
   cvEnPath: string = CV_PDF_EN_PATH
 ): Promise<{ brief: SearchBrief; profile: UserMasterProfile }> {
-  const profile = await loadUserProfileFromCVs(cvFrPath, cvEnPath);
+  // 1. Priorité au profil personnalisé enregistré par l'utilisateur
+  const store = loadStore();
+  const savedProfile = store.user_profiles?.[0];
+  let profile: UserMasterProfile;
+
+  if (savedProfile && savedProfile.full_name && savedProfile.core_competencies?.length > 0) {
+    profile = {
+      profile_id: savedProfile.profile_id || "user_master",
+      full_name: savedProfile.full_name,
+      languages: savedProfile.languages || ["FR", "EN"],
+      core_competencies: savedProfile.core_competencies,
+      experience_years: Number(savedProfile.experience_years) || 4,
+      cv_templates: {
+        fr_pdf: savedProfile.cv_template_fr || cvFrPath,
+        en_pdf: savedProfile.cv_template_en || cvEnPath
+      }
+    };
+  } else {
+    profile = await loadUserProfileFromCVs(cvFrPath, cvEnPath);
+  }
+
   const brief = generateTargetBrief(profile);
   return { brief, profile };
 }
@@ -654,20 +686,24 @@ export function evaluateMatchScore(
   const expRatio = Math.min(profile.experience_years / 5, 1);
   criteriaBreakdown.experience_match = Math.round(expRatio * 25);
 
-  // Priorité absolue : Marrakech (+25 pts) & Casablanca (+22 pts)
+  // Priorités géographiques dynamiques configurées par l'utilisateur
+  const store = loadStore();
+  const configuredLocs = (store.agent_config?.target_locations || "Marrakech, Casablanca, Maroc, Remote")
+    .split(",")
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+
   const offerLocationLower = (offer.location || "").toLowerCase();
   let locationScore = 0;
 
-  if (offerLocationLower.includes("marrakech")) {
-    locationScore = 25; // Priorité #1 utilisateur : Marrakech
-  } else if (offerLocationLower.includes("casablanca")) {
-    locationScore = 22; // Priorité #2 utilisateur : Casablanca
-  } else if (offerLocationLower.includes("maroc") || offerLocationLower.includes("morocco") || offerLocationLower.includes("rabat")) {
-    locationScore = 18; // Maroc national
+  if (configuredLocs[0] && offerLocationLower.includes(configuredLocs[0])) {
+    locationScore = 25; // Priorité #1 personnalisée de l'utilisateur
+  } else if (configuredLocs[1] && offerLocationLower.includes(configuredLocs[1])) {
+    locationScore = 22; // Priorité #2 personnalisée de l'utilisateur
+  } else if (configuredLocs.slice(2).some(loc => offerLocationLower.includes(loc))) {
+    locationScore = 18; // Autres localisations préférées
   } else if (offerLocationLower.includes("remote") || offerLocationLower.includes("télétravail")) {
     locationScore = 15; // International / Remote
-  } else if (offerLocationLower.includes("paris") || offerLocationLower.includes("lyon") || offerLocationLower.includes("france")) {
-    locationScore = 12; // France
   } else {
     locationScore = 5;
   }
@@ -693,8 +729,9 @@ export function evaluateMatchScore(
 
   const recommendations: string[] = [];
   
-  if (locationScore >= 22) {
-    recommendations.push("⭐ Opportunité locale hautement prioritaire (Marrakech / Casablanca)");
+  if (locationScore >= 20 && configuredLocs.length > 0) {
+    const topLabels = configuredLocs.slice(0, 2).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" / ");
+    recommendations.push(`⭐ Opportunité cible prioritaire (${topLabels})`);
   }
   if (criteriaBreakdown.skills_match < 30) {
     recommendations.push("Considérer de renforcer le profile avec des compétences supplémentaires");
@@ -703,7 +740,7 @@ export function evaluateMatchScore(
     recommendations.push("Vérifier l'adéquation des années d'expérience");
   }
   if (criteriaBreakdown.location_match <= 5) {
-    recommendations.push("L'emplacement ne correspond pas aux préférences locales (Marrakech / Casablanca)");
+    recommendations.push("L'emplacement ne correspond pas à vos villes cibles configurées");
   }
 
   return {
@@ -716,31 +753,41 @@ export function evaluateMatchScore(
 
 /**
  * Gate de décision: Valide le passage à la phase de rédaction
- * Decision Gate: Match Score >= 75%
+ * Decision Gate dynamique (seuil configurable par l'utilisateur)
  */
-export function validateWritingPhase(matchScore: number): {
+export function validateWritingPhase(matchScore: number, customThreshold?: number): {
   approved: boolean
   gate_status: "APPROVED" | "REJECTED" | "REVIEW"
   message: string
 } {
+  let threshold = customThreshold;
+  if (threshold === undefined) {
+    try {
+      const store = loadStore();
+      threshold = Number(store.agent_config?.match_score_threshold || 75);
+    } catch {
+      threshold = 75;
+    }
+  }
+
   let status: "APPROVED" | "REJECTED" | "REVIEW";
   let approved: boolean;
 
-  if (matchScore >= 75) {
+  if (matchScore >= threshold) {
     status = "APPROVED";
     approved = true;
     return {
       approved,
       gate_status: status,
-      message: `✅ Match Score ${matchScore}% - APPROUVÉ. Passage à la phase de rédaction automatique.`
+      message: `✅ Match Score ${matchScore}% >= Seuil ${threshold}% - APPROUVÉ. Passage à la phase de rédaction automatique.`
     };
-  } else if (matchScore >= 50) {
+  } else if (matchScore >= Math.max(40, threshold - 25)) {
     status = "REVIEW";
     approved = false;
     return {
       approved,
       gate_status: status,
-      message: `⚠️ Match Score ${matchScore}% - EN ATTENTE. Revue manuelle recommandée.`
+      message: `⚠️ Match Score ${matchScore}% (Seuil ${threshold}%) - EN ATTENTE. Revue manuelle recommandée.`
     };
   } else {
     status = "REJECTED";
@@ -748,7 +795,7 @@ export function validateWritingPhase(matchScore: number): {
     return {
       approved,
       gate_status: status,
-      message: `❌ Match Score ${matchScore}% - REJETÉ. L'offre ne correspond pas au profil.`
+      message: `❌ Match Score ${matchScore}% < Seuil ${threshold}% - REJETÉ. L'offre ne correspond pas au profil.`
     };
   }
 }

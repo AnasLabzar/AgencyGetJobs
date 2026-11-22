@@ -16,9 +16,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`[API ARABIC-JOBS] Requête filtrée - Ville: ${city}, Discount: ${discountOnly}, Tech: ${techOnly}`);
 
-    // Import dynamique pour éviter les problèmes de circular dependency
-    const { JobOfferIntel } = await import("@/types/schemas");
-
     // Simuler les offres arabes pour Marrakech et Casablanca
     const arabicOffers: JobOfferIntel[] = [
       {
